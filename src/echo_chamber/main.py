@@ -1,7 +1,10 @@
 import sys
 
 import pygame
+from pygame.time import Clock
 
+from echo_chamber.enemy.enemy import AbstractEnemy
+from echo_chamber.enemy.goblin import Goblin
 from echo_chamber.simulation import Simulation
 
 pygame.init()
@@ -21,17 +24,18 @@ class Game:
 
         self.screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT), pygame.FULLSCREEN)
         self.clock = pygame.time.Clock()
+        self.dt = 0
     
         load_tile_textures()
 
         self.player: Player = Player()
-        self.board: Board = Board(self.player)
-        self.action_queue: ActionQueue = ActionQueue()
+        self.board: Board = Board(self)
+        self.action_queue: ActionQueue = ActionQueue(self)
 
-        self.simulation: Simulation = Simulation(self.board)
+        self.simulation: Simulation = Simulation(self)
         self.confirm_button: ConfirmButton = ConfirmButton(self.simulation, self.action_queue)
     
-        for i in range(5):
+        for i in range(10):
             self.action_queue.push_card(generate_card())
 
         self.rendering_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -40,14 +44,20 @@ class Game:
         self.text_scale = RENDER_SCALE if DEBUG__SCALE else 1
         self.text_layer = TextLayer(SCREEN_WIDTH, SCREEN_HEIGHT, self.text_scale,
                                FONT_PATH, FONT_BASE_SIZE, TEXT_SCALE)
+        
+        self.enemies: list[AbstractEnemy] = []
+        
+    def spawn_goblin(self, grid_x: int, grid_y: int) -> None:
+        self.enemies.append(Goblin(self, (grid_x, grid_y)))
 
     def handle_input(self, event: pygame.Event) -> None:
         self.action_queue.handle_input(event)
         self.confirm_button.handle_input(event)
-        self.player.handle_input(event)
+        # self.player.handle_input(event)
     
     def update(self) -> None:
         self.simulation.update()
+        self.player.update(self.dt, self.board)
     
     def render(self) -> None:
         self.board.render(self.rendering_surface, self.text_layer)
@@ -55,6 +65,9 @@ class Game:
 
         self.action_queue.render(self.rendering_surface, self.text_layer)
         self.confirm_button.render(self.rendering_surface, self.text_layer)
+
+        for enemy in self.enemies:
+            enemy.render(self.rendering_surface, self.text_layer)
 
     def run(self) -> None:
         while True:
@@ -86,7 +99,7 @@ class Game:
             self.screen.blit(scaled, (0, 0))
             self.screen.blit(self.text_layer.surface, (0, 0))
 
-            self.clock.tick(120)
+            self.dt = self.clock.tick(120) / 1000
             pygame.display.flip()
 
 

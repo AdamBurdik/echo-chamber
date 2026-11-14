@@ -4,9 +4,15 @@ from echo_chamber.config import *
 from echo_chamber.layer import TextLayer
 from echo_chamber.utils import get_mouse_position
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from echo_chamber.main import Game
 
 class ActionQueue:
-    def __init__(self) -> None:
+    def __init__(self, game: "Game") -> None:
+        self.game: Game = game
+        
         self.capacity = 5
         self.inventory = []
         self.selected = []
@@ -84,6 +90,11 @@ class ActionQueue:
                 text_size = text_layer.text_size(f"Selected cards")
                 text_layer.draw_text(f"Selected cards", (rect.x + (CARD_WIDTH - text_size[0]) / 2, rect.y + line_offset_y - CARD_HEIGHT - 3), argb_int_to_rgba(0xcdd4a5))
 
+        if self.game.simulation.running:
+            shadow = pygame.Surface((bg_rect.width, bg_rect.height), pygame.SRCALPHA)   # per-pixel alpha
+            shadow.fill((0, 0, 0, 128))                         # notice the alpha value in the color
+            surface.blit(shadow, (bg_rect.x, bg_rect.y))
+
         # offset_y = SCREEN_HEIGHT - CARD_HEIGHT
         # 
         # for card in self.inventory:
@@ -105,7 +116,7 @@ class ActionQueue:
         ...
 
     def handle_input(self, event: pygame.Event) -> None:
-        if event.type != pygame.MOUSEBUTTONDOWN:
+        if event.type != pygame.MOUSEBUTTONDOWN or self.game.simulation.running:
             return
 
         mouse_x, mouse_y = get_mouse_position()

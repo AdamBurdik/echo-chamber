@@ -1,10 +1,15 @@
+from typing import TYPE_CHECKING
+
 from echo_chamber.board import Board
 from echo_chamber.config import SIMULATION_DELAY
 
+if TYPE_CHECKING:
+    from echo_chamber.main import Game
 
 class Simulation:
-    def __init__(self, board: Board) -> None:
-        self.board = board
+    def __init__(self, game: "Game") -> None:
+        self.game: Game = game
+        self.board: Board = game.board
         
         self.running: bool = False
         self.selected_cards: list[dict] = None
@@ -16,6 +21,7 @@ class Simulation:
             self.running = False
             return
 
+        # Execute card actions
         card = self.selected_cards.pop(0)
         
         actions = card["actions"]
@@ -26,8 +32,12 @@ class Simulation:
                 amount = action["move"]["amount"]
                 direction = action["move"]["direction"]
                 
-                self.board.move_player_relative(direction, amount)
+                # self.board.move_player_relative(direction, amount)
+                self.game.player.jump_up(self.board)
                 
+        # Tick enemies
+        for enemy in self.game.enemies:
+            enemy.simulation_step()
         
     def begin_simulation(self, selected: list[dict]) -> None:
         self.running = True
