@@ -1,12 +1,14 @@
-import pygame
-
 from echo_chamber.config import *
 from echo_chamber.layer import TextLayer
+from echo_chamber.queue.action import ActionQueue
+from echo_chamber.simulation import Simulation
 from echo_chamber.utils import get_mouse_position
 
-
 class ConfirmButton:
-    def __init__(self):
+    def __init__(self, simulation: Simulation, action_queue: ActionQueue) -> None:
+        self.simulation = simulation
+        self.action_queue: ActionQueue = action_queue
+        
         diff = SCREEN_WIDTH - CARD_QUEUE_WIDTH
 
         self.origin = (
@@ -25,15 +27,16 @@ class ConfirmButton:
                 rect.x + (CONFIRM_BUTTON_WIDTH - text_size[0]) / 2,
                 rect.y + (CONFIRM_BUTTON_HEIGHT - text_size[1]) / 2
             ),
-            (255, 255, 255),
+            (255, 255, 255) if not self.simulation.running else (50, 50, 50),
             text_scale=2
         )
     
     def handle_input(self, event: pygame.event.Event) -> None:
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.MOUSEBUTTONDOWN and not self.simulation.running:
             mouse_x, mouse_y = get_mouse_position()
             
             rect = pygame.Rect(self.origin[0], self.origin[1], CONFIRM_BUTTON_WIDTH, CONFIRM_BUTTON_HEIGHT)
             if rect.collidepoint(mouse_x, mouse_y):
                 print("BEGIN RUN")
+                self.simulation.begin_simulation(self.action_queue.selected)
                 return

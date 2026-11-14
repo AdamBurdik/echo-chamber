@@ -15,7 +15,7 @@ def load_image(path: str) -> pygame.Surface:
 
 
 DEBUG__SCALE = True
-DEBUG__DRAW_TILEMAP_INDICES = False
+DEBUG__DRAW_TILEMAP_INDICES = True
 
 DISPLAY_WIDTH = 1920
 DISPLAY_HEIGHT = 1080
@@ -53,7 +53,9 @@ CARD_REGISTRY = {
             "Lorem ipsum",
             "dolor sit amet",
         ],
-        "selected": False
+        "selected": False,
+        "actions": [
+        ]
     },
     "move-forward-1": {
         "type": "move-forward-1",
@@ -62,7 +64,15 @@ CARD_REGISTRY = {
             "Move 1 tile",
             "forward",
         ],
-        "selected": False
+        "selected": False,
+        "actions": [
+            {
+                "move": {
+                    "amount": 1,
+                    "direction": "up"
+                }
+            }
+        ]
     },
     "move-forward-2": {
         "type": "move-forward-2",
@@ -71,7 +81,15 @@ CARD_REGISTRY = {
             "Move 2 tiles",
             "forward",
         ],
-        "selected": False
+        "selected": False,
+        "actions": [
+            {
+                "move": {
+                    "amount": 2,
+                    "direction": "up"
+                }
+            }
+        ]
     }
 }
 
@@ -89,3 +107,5 @@ def load_tile_textures() -> None:
 FONT_PATH = "./assets/fonts/at01.ttf"
 FONT_BASE_SIZE = 12
 TEXT_SCALE = 0.67
+
+SIMULATION_DELAY = 120 * 1 # = second

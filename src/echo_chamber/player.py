@@ -1,3 +1,5 @@
+from unittest import case
+
 from echo_chamber.config import *
 from echo_chamber.layer import TextLayer
 from echo_chamber.utils import load_image
@@ -5,28 +7,29 @@ from echo_chamber.utils import load_image
 
 class Player:
     def __init__(self) -> None:
-        board_width = TILE_SIZE * BOARD_GRID_WIDTH
-        board_height = TILE_SIZE * BOARD_GRID_HEIGHT
-        board_origin = (
-            (SCREEN_WIDTH - board_width) / 6,
-            (SCREEN_HEIGHT - board_height) / 2
-        )
-        
         self.origin = PLAYER_SCREEN_POS
         
         self.textures = {
             "idle": {
-                "front": load_image("assets/player/idle/front.png"),
-                "back": load_image("assets/player/idle/back.png"),
+                "up": load_image("assets/player/idle/front.png"),
+                "down": load_image("assets/player/idle/back.png"),
                 "left": load_image("assets/player/idle/left.png"),
                 "right": load_image("assets/player/idle/right.png"),
                 
             }
         }
         
-        self.direction = "front"
+        self.direction = "up"
         self.state = "idle"
-    
+        
+    def get_direction_vector(self) -> tuple[int, int]:
+        match self.direction:
+            case "up": return 0, -1
+            case "down": return 0, 1
+            case "right": return 1, 0
+            case "left": return 1, 1
+        raise Exception(f"Invalid direction: {self.direction}")
+
     def render(self, surface: pygame.Surface, text_layer: TextLayer) -> None:
         texture = self.textures[self.state][self.direction]
         surface.blit(texture, self.origin)

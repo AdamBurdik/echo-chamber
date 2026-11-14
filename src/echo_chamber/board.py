@@ -1,10 +1,12 @@
+import pygame
+
 from echo_chamber.config import *
 from echo_chamber.layer import TextLayer
-import pygame
+from echo_chamber.player import Player
 
 
 class Board:
-    def __init__(self) -> None:
+    def __init__(self, player: Player) -> None:
         # Center origin to the middle of the screen
         self.origin = (
             PLAYER_SCREEN_POS[0] - PLAYER_WIDTH / 2,
@@ -35,7 +37,8 @@ class Board:
         return tiles
 
     def render(self, surface: pygame.Surface, text_layer: TextLayer) -> None:
-        for (grid_x, grid_y) in self.get_tiles_around(self.player_position[0], self.player_position[1], (BOARD_GRID_WIDTH - 1) // 2):
+        for (grid_x, grid_y) in self.get_tiles_around(self.player_position[0], self.player_position[1],
+                                                      (BOARD_GRID_WIDTH - 1) // 2):
             row = self.tile_map.get(grid_y)
             if row is None:
                 row = {}
@@ -64,9 +67,19 @@ class Board:
             if DEBUG__DRAW_TILEMAP_INDICES:
                 text_layer.draw_text(f"{grid_x}; {grid_y}", (x, y))
 
-    def move_player(self, direction: tuple[int, int]) -> None:
-        self.player_position[0] += direction[0]
-        self.player_position[1] += direction[1]
+    def move_player(self, direction: tuple[int, int], amount: int) -> None:
+        self.player_position[0] += direction[0] * amount
+        self.player_position[1] += direction[1] * amount
+
+    def move_player_relative(self, direction: str, amount: int) -> None:
+        idk = {
+            "up": (0, -1),
+            "down": (0, 1),
+            "left": (-1, 0),
+            "right": (1, 0),
+        }
+        self.move_player(idk[direction], amount)
+        
 
     def update(self) -> None:
         ...
