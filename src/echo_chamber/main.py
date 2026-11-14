@@ -1,41 +1,45 @@
+import copy
 import random
 import sys
+
 import pygame
 
-TILE_SIZE = 32
+from echo_chamber import player
+from echo_chamber.board import Board
+from echo_chamber.config import *
+from echo_chamber.confirm_button import ConfirmButton
+from echo_chamber.layer import  TextLayer
+from echo_chamber.player import Player
+from echo_chamber.queue.action import ActionQueue
+from echo_chamber.utils import generate_card
 
-DISPLAY_WIDTH = 1920
-DISPLAY_HEIGHT = 1080
-SCREEN_WIDTH = 480
-SCREEN_HEIGHT = 270
-
-class Board:
-    def __init__(self, grid_width: int, grid_height: int) -> None:
-        self.grid_width = grid_width
-        self.grid_height = grid_height
-
-    def render(self, surface: pygame.Surface) -> None:
-        for y in range(self.grid_height):
-            for x in range(self.grid_width):
-                # Multiply by TILE_SIZE instead of grid dimensions to space tiles correctly
-                rect = pygame.Rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
-                pygame.draw.rect(surface, (random.randint(0, 255), 0, 0), rect)
-
-    def update(self) -> None:
-        ...
+pygame.init()
+ 
+            
+        
 
 
 def main() -> None:
-    pygame.init()
     pygame.display.set_caption("Echo Chamber")
 
-    # Removed OPENGL flag so standard pygame.draw functions work normally
-    screen = pygame.display.set_mode((1920, 1080), pygame.FULLSCREEN)
+    screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT), pygame.FULLSCREEN)
     clock = pygame.time.Clock()
 
-    board: Board = Board(5, 7)
+    board: Board = Board()
+    action_queue: ActionQueue = ActionQueue()
+    player: Player = Player()
+    
+    confirm_button: ConfirmButton = ConfirmButton()
+
+    for i in range(5):
+        action_queue.push_card(generate_card())
 
     rendering_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+    # When SCALE is off the low-res surface is shown 1:1, so text uses scale 1
+    text_scale = RENDER_SCALE if SCALE else 1
+    text_layer = TextLayer(SCREEN_WIDTH, SCREEN_HEIGHT, text_scale,
+                           FONT_PATH, FONT_BASE_SIZE, TEXT_SCALE)
 
     while True:
         for event in pygame.event.get():
@@ -46,19 +50,33 @@ def main() -> None:
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
+            else:
+                action_queue.handle_input(event)
+                confirm_button.handle_input(event)
+                player.handle_input(event)
 
         # Rendering
         screen.fill((0, 0, 0))
+        rendering_surface.fill((255, 255, 255))
+        text_layer.clear()
 
         board.render(rendering_surface)
+        player.render(rendering_surface, text_layer)
         
-        # Scale and blit rendering surface
-        scaled = pygame.transform.scale(rendering_surface, (DISPLAY_WIDTH, DISPLAY_HEIGHT))
-        screen.blit(scaled, (0, 0))
+        action_queue.render(rendering_surface, text_layer)
+        confirm_button.render(rendering_surface, text_layer)
 
-        # Idk
+        # Scale low-res surface, then draw hi-res text on top
+        if SCALE:
+            scaled = pygame.transform.scale(rendering_surface, (DISPLAY_WIDTH, DISPLAY_HEIGHT))
+        else:
+            scaled = rendering_surface
+        screen.blit(scaled, (0, 0))
+        screen.blit(text_layer.surface, (0, 0))
+
         clock.tick(120)
         pygame.display.flip()
+
 
 if __name__ == "__main__":
     main()

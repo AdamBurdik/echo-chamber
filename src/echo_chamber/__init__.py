@@ -1,4 +1,1 @@
-from main import main
-
-if __name__ == "__main__":
-    main()
+from echo_chamber.main import main
