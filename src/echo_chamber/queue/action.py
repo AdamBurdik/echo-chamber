@@ -67,7 +67,7 @@ class ActionQueue:
     def render(self, surface: pygame.Surface, text_layer: TextLayer) -> None:
         # Render background
         bg_rect = pygame.Rect(self.origin[0], self.origin[1], CARD_QUEUE_WIDTH, CARD_QUEUE_HEIGHT)
-        pygame.draw.rect(surface, (59, 64, 94), bg_rect)
+        # pygame.draw.rect(surface, (59, 64, 94), bg_rect)
 
         cards = self._get_card_rects()
 
@@ -83,12 +83,12 @@ class ActionQueue:
 
             line_offset_y = 0
             for line in card["lines"]:
-                text_layer.draw_text(line, (rect.x, rect.y + line_offset_y))
+                text_layer.draw_text(line, (rect.x, rect.y + line_offset_y), layer="behind")
                 line_offset_y += text_layer.text_size(line)[1]
 
             if card["temp"].get("last_selected", False):
                 text_size = text_layer.text_size(f"Selected cards")
-                text_layer.draw_text(f"Selected cards", (rect.x + (CARD_WIDTH - text_size[0]) / 2, rect.y + line_offset_y - CARD_HEIGHT - 3), argb_int_to_rgba(0xcdd4a5))
+                text_layer.draw_text(f"Selected cards", (rect.x + (CARD_WIDTH - text_size[0]) / 2, rect.y + line_offset_y - CARD_HEIGHT - 3), argb_int_to_rgba(0xffcdd4a5), layer="behind")
 
         if self.game.simulation.running:
             shadow = pygame.Surface((bg_rect.width, bg_rect.height), pygame.SRCALPHA)   # per-pixel alpha
@@ -124,6 +124,9 @@ class ActionQueue:
         for card, rect in self._get_card_rects():
             if rect.collidepoint(mouse_x, mouse_y):
                 is_selected = card["selected"]
+
+                if len(self.selected) >= CARD_QUEUE_MAX_SELECTED:
+                    return
 
                 if not is_selected:
                     self.inventory.remove(card)

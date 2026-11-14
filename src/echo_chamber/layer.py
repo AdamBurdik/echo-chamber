@@ -9,9 +9,9 @@ class TextLayer:
         self.text_scale = text_scale
         self.font_path = font_path
         self.base_font_size = base_font_size
-        self.surface = pygame.Surface(
-            (low_width * scale, low_height * scale), pygame.SRCALPHA
-        )
+        size = (low_width * scale, low_height * scale)
+        self.surface = pygame.Surface(size, pygame.SRCALPHA)
+        self.behind_surface = pygame.Surface(size, pygame.SRCALPHA)
         self._fonts: dict[float, pygame.font.Font] = {}
 
     def get_font(self, text_scale: float | None = None) -> pygame.font.Font:
@@ -33,11 +33,26 @@ class TextLayer:
         w, h = self.get_font(text_scale).size(text)
         return w / self.scale, h / self.scale
 
-    def clear(self) -> None:
-        self.surface.fill((0, 0, 0, 0))
+    def clear(self, layer: str | None = None) -> None:
+        if layer is None:
+            self.surface.fill((0, 0, 0, 0))
+            self.behind_surface.fill((0, 0, 0, 0))
+            return
+
+        self.get_surface(layer).fill((0, 0, 0, 0))
+
+    def get_surface(self, layer: str) -> pygame.Surface:
+        match layer:
+            case "above":
+                return self.surface
+            case "behind":
+                return self.behind_surface
+            case _:
+                raise ValueError(f"Unknown text layer: {layer!r}")
 
     def draw_text(self, text: str, pos: tuple[float, float],
                   color: tuple[int, int, int] = (255, 255, 255),
-                  text_scale: float | None = None) -> None:
+                  text_scale: float | None = None,
+                  layer: str = "above") -> None:
         text_surface = self.get_font(text_scale).render(text, False, color)
-        self.surface.blit(text_surface, self.project(*pos))
+        self.get_surface(layer).blit(text_surface, self.project(*pos))

@@ -25,8 +25,12 @@ SCREEN_HEIGHT = DISPLAY_HEIGHT // RENDER_SCALE
 
 TILE_SIZE = 16
 
-BOARD_GRID_WIDTH = 15
-BOARD_GRID_HEIGHT = 15
+BOARD_GRID_WIDTH = 17
+BOARD_GRID_HEIGHT = 17
+BOARD_RENDER_MARGIN = 2  # extra tiles so jumps never expose the background
+
+BACKDROP_PATH = "assets/backdrop.png"
+BACKDROP_INTENSITY = 1.0  # strength of the animated edge warp
 
 PLAYER_WIDTH = 8
 PLAYER_HEIGHT = 16
@@ -44,25 +48,15 @@ CARD_QUEUE_WIDTH = CARD_WIDTH + CARD_QUEUE_PADDING * 2
 CARD_QUEUE_HEIGHT = SCREEN_HEIGHT - 32  # SCREEN_HEIGHT - CONFIRM_BUTTON_HEIGHT
 CARD_QUEUE_GAP = 1  # Gap between each card pair
 CARD_QUEUE_SELECTED_GAP = 20  # Gap between selected ones and the rest
+CARD_QUEUE_MAX_SELECTED = 5
 
 CONFIRM_BUTTON_WIDTH = CARD_WIDTH + CARD_QUEUE_PADDING * 2
 CONFIRM_BUTTON_HEIGHT = 32
 
 CARD_REGISTRY = {
-    "dummy": {
-        "type": "dummy",
-        "color": argb_int_to_rgba(0x9a6278),
-        "lines": [
-            "Lorem ipsum",
-            "dolor sit amet",
-        ],
-        "selected": False,
-        "actions": [
-        ]
-    },
     "move-forward-1": {
         "type": "move-forward-1",
-        "color": argb_int_to_rgba(0xff0000),
+        "color": argb_int_to_rgba(0xffff0000),
         "lines": [
             "Move 1 tile",
             "forward",
@@ -79,7 +73,7 @@ CARD_REGISTRY = {
     },
     "move-forward-2": {
         "type": "move-forward-2",
-        "color": argb_int_to_rgba(0x00ff00),
+        "color": argb_int_to_rgba(0xff00ff00),
         "lines": [
             "Move 2 tiles",
             "forward",
@@ -90,6 +84,57 @@ CARD_REGISTRY = {
                 "move": {
                     "amount": 2,
                     "direction": "up"
+                }
+            }
+        ]
+    },
+    "move-down-1": {
+        "type": "move-down-1",
+        "color": argb_int_to_rgba(0xff0000ff),
+        "lines": [
+            "Move 1 tile",
+            "down",
+        ],
+        "selected": False,
+        "actions": [
+            {
+                "move": {
+                    "amount": 1,
+                    "direction": "down"
+                }
+            }
+        ]
+    },
+    "move-left-1": {
+        "type": "move-left-1",
+        "color": argb_int_to_rgba(0xff0000ff),
+        "lines": [
+            "Move 1 tile",
+            "left",
+        ],
+        "selected": False,
+        "actions": [
+            {
+                "move": {
+                    "amount": 1,
+                    "direction": "left"
+                }
+            }
+        ]
+    },
+    "move-right-1": {
+        "type": "move-right-1",
+        "color": argb_int_to_rgba(0xff0000ff),
+        "lines": [
+            "Move 1 tile",
+            "right",
+        ],
+        "selected": False,
+        "actions": [
+            {
+                "move": {
+                    "amount": 1,
+                    "direction": "right"
                 }
             }
         ]
@@ -105,6 +150,9 @@ def load_tile_textures() -> None:
         }
     
     register("empty", "assets/tiles/empty.png")
+    register("hole", "assets/tiles/hole.png")
+    register("square_pattern", "assets/tiles/square_pattern.png")
+    register("lines", "assets/tiles/lines.png")
 
 
 FONT_PATH = "./assets/fonts/at01.ttf"

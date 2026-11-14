@@ -31,9 +31,8 @@ class Simulation:
                 print("Moving: ", action)
                 amount = action["move"]["amount"]
                 direction = action["move"]["direction"]
-                
-                # self.board.move_player_relative(direction, amount)
-                self.game.player.jump_up(self.board)
+
+                self.game.player.jump(self.board, direction, amount)
                 
         # Tick enemies
         for enemy in self.game.enemies:

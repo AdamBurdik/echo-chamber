@@ -27,8 +27,6 @@ class Board:
         # Use a list so coordinates can be updated in place
         self.player_position = [0, 0]
         self.camera_offset = [0.0, 0.0]
-        
-        self.backdrop: pygame.Surface = load_image("assets/backdrop.png")
 
     def generate_initial_tilemap(self) -> None:
         for grid_y in range(BOARD_GRID_HEIGHT):
@@ -48,8 +46,14 @@ class Board:
         return tiles
 
     def render(self, surface: pygame.Surface, text_layer: TextLayer) -> None:
+        camera_x = round(self.camera_offset[0])
+        camera_y = round(self.camera_offset[1])
+        origin_x = round(self.origin[0])
+        origin_y = round(self.origin[1])
+        radius = (BOARD_GRID_WIDTH - 1) // 2 + BOARD_RENDER_MARGIN
+
         for (grid_x, grid_y) in self.get_tiles_around(self.player_position[0], self.player_position[1],
-                                                      (BOARD_GRID_WIDTH - 1) // 2):
+                                                      radius):
             row = self.tile_map.get(grid_y)
             if row is None:
                 row = {}
@@ -62,27 +66,27 @@ class Board:
                 if random.randint(0, 10) == 0:
                     self.game.spawn_goblin(grid_x, grid_y)
 
-                tile_id = "empty"
+                tile_id = random.choice(["empty", "hole", "square_pattern", "lines"])
                 row[grid_x] = tile_id
 
             tile = TILE_REGISTRY.get(tile_id)
             if tile is None:
-                tile = TILE_REGISTRY["empty"]
+                tile = TILE_REGISTRY[
+                    random.choice(["empty", "hole", "square_pattern", "lines"])
+                ]
 
             image = tile["image"]
 
             rel_x = grid_x - self.player_position[0]
             rel_y = grid_y - self.player_position[1]
 
-            x = (rel_x * TILE_SIZE) + self.origin[0] + self.camera_offset[0]
-            y = (rel_y * TILE_SIZE) + self.origin[1] + self.camera_offset[1]
+            x = (rel_x * TILE_SIZE) + origin_x + camera_x
+            y = (rel_y * TILE_SIZE) + origin_y + camera_y
 
             surface.blit(image, (x, y))
 
             if DEBUG__DRAW_TILEMAP_INDICES:
                 text_layer.draw_text(f"{grid_x}; {grid_y}", (x, y))
-
-        surface.blit(self.backdrop, (0, 0))
 
     def move_player(self, direction: tuple[int, int], amount: int) -> None:
         self.player_position[0] += direction[0] * amount
@@ -97,15 +101,12 @@ class Board:
         }
         self.move_player(idk[direction], amount)
 
-    def update(self) -> None:
-        ...
-
     def grid_to_screen(self, grid_x: int, grid_y: int) -> tuple[float, float]:
         rel_x = grid_x - self.player_position[0]
         rel_y = grid_y - self.player_position[1]
 
-        x = (rel_x * TILE_SIZE) + self.origin[0] + self.camera_offset[0]
-        y = (rel_y * TILE_SIZE) + self.origin[1] + self.camera_offset[1]
+        x = (rel_x * TILE_SIZE) + round(self.origin[0]) + round(self.camera_offset[0])
+        y = (rel_y * TILE_SIZE) + round(self.origin[1]) + round(self.camera_offset[1])
         return x, y
 
 

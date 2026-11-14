@@ -1,3 +1,4 @@
+import os
 import sys
 
 import pygame
@@ -7,6 +8,11 @@ from echo_chamber.enemy.enemy import AbstractEnemy
 from echo_chamber.enemy.goblin import Goblin
 from echo_chamber.simulation import Simulation
 
+# Tiling Wayland compositors can ignore SDL's fullscreen request. XWayland
+# honors it, so prefer X11 when both backends are available.
+if os.environ.get("WAYLAND_DISPLAY") and os.environ.get("DISPLAY"):
+    os.environ["SDL_VIDEODRIVER"] = "x11"
+
 pygame.init()
 
 from echo_chamber.board import Board
@@ -15,6 +21,7 @@ from echo_chamber.confirm_button import ConfirmButton
 from echo_chamber.layer import TextLayer
 from echo_chamber.player import Player
 from echo_chamber.queue.action import ActionQueue
+from echo_chamber.renderer import Renderer
 from echo_chamber.utils import generate_card
 
 
@@ -22,7 +29,15 @@ class Game:
     def __init__(self) -> None:
         pygame.display.set_caption("Echo Chamber")
 
-        self.screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT), pygame.FULLSCREEN)
+        # Tiling Wayland compositors ignore FULLSCREEN and tile the window instead.
+        # A borderless window at the desktop size reliably covers the screen.
+        flags = pygame.OPENGL | pygame.DOUBLEBUF
+        if pygame.display.get_driver() == "wayland":
+            flags |= pygame.NOFRAME
+        else:
+            flags |= pygame.FULLSCREEN
+
+        self.screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT), flags)
         self.clock = pygame.time.Clock()
         self.dt = 0
     
@@ -39,11 +54,17 @@ class Game:
             self.action_queue.push_card(generate_card())
 
         self.rendering_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.overlay_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
     
         # When SCALE is off the low-res surface is shown 1:1, so text uses scale 1
         self.text_scale = RENDER_SCALE if DEBUG__SCALE else 1
         self.text_layer = TextLayer(SCREEN_WIDTH, SCREEN_HEIGHT, self.text_scale,
                                FONT_PATH, FONT_BASE_SIZE, TEXT_SCALE)
+
+        self.renderer = Renderer(
+            (SCREEN_WIDTH, SCREEN_HEIGHT),
+            self.text_layer.surface.get_size(),
+        )
         
         self.enemies: list[AbstractEnemy] = []
         
@@ -58,16 +79,17 @@ class Game:
     def update(self) -> None:
         self.simulation.update()
         self.player.update(self.dt, self.board)
+        self.renderer.update(self.dt)
     
     def render(self) -> None:
         self.board.render(self.rendering_surface, self.text_layer)
         self.player.render(self.rendering_surface, self.text_layer)
+        for enemy in self.enemies:
+            enemy.render(self.rendering_surface, self.text_layer)
 
         self.action_queue.render(self.rendering_surface, self.text_layer)
         self.confirm_button.render(self.rendering_surface, self.text_layer)
 
-        for enemy in self.enemies:
-            enemy.render(self.rendering_surface, self.text_layer)
 
     def run(self) -> None:
         while True:
@@ -85,19 +107,17 @@ class Game:
                     self.handle_input(event)
     
             # Rendering
-            self.screen.fill((0, 0, 0))
             self.rendering_surface.fill((255, 255, 255))
+            self.overlay_surface.fill((0, 0, 0, 0))
             self.text_layer.clear()
     
             self.render()
-    
-            # Scale low-res surface, then draw hi-res text on top
-            if DEBUG__SCALE:
-                scaled = pygame.transform.scale(self.rendering_surface, (DISPLAY_WIDTH, DISPLAY_HEIGHT))
-            else:
-                scaled = self.rendering_surface
-            self.screen.blit(scaled, (0, 0))
-            self.screen.blit(self.text_layer.surface, (0, 0))
+            self.renderer.render(
+                self.rendering_surface,
+                self.overlay_surface,
+                self.text_layer.surface,
+                self.text_layer.behind_surface,
+            )
 
             self.dt = self.clock.tick(120) / 1000
             pygame.display.flip()

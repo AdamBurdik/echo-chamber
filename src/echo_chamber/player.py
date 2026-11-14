@@ -43,21 +43,30 @@ class Player:
             case "left": return -1, 0
         raise Exception(f"Invalid direction: {self.direction}")
 
-    def jump_up(self, board) -> None:
-        self.jump(board, self.direction)
+    def jump_up(self, board, amount: int = 1) -> None:
+        self.jump(board, "up", amount)
 
-    def jump(self, board, direction: str) -> None:
+    def jump_down(self, board, amount: int = 1) -> None:
+        self.jump(board, "down", amount)
+
+    def jump_left(self, board, amount: int = 1) -> None:
+        self.jump(board, "left", amount)
+
+    def jump_right(self, board, amount: int = 1) -> None:
+        self.jump(board, "right", amount)
+
+    def jump(self, board, direction: str, amount: int = 1) -> None:
         if self.jumping:
-            return 
+            return
 
         self.direction = direction
         dx, dy = self.get_direction_vector()
 
-        board.move_player((dx, dy), 1)  # logical move happens instantly
+        board.move_player((dx, dy), amount)  # logical move happens instantly
 
-        # The logical move is instant, so offset the board back by exactly one
-        # tile to keep the old frame on screen. It then eases back to zero.
-        self.jump_start_offset = (dx * TILE_SIZE, dy * TILE_SIZE)
+        # The logical move is instant, so offset the board back by the whole
+        # move to keep the old frame on screen. It then eases back to zero.
+        self.jump_start_offset = (dx * TILE_SIZE * amount, dy * TILE_SIZE * amount)
         board.camera_offset[0], board.camera_offset[1] = self.jump_start_offset
 
         self.jumping = True
