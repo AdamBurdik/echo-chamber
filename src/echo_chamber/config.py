@@ -7,7 +7,7 @@ def argb_int_to_rgba(value):
     r = (value >> 16) & 0xFF
     g = (value >> 8) & 0xFF
     b = value & 0xFF
-    return (r, g, b, a)
+    return r, g, b, a
 
 
 def load_image(path: str) -> pygame.Surface:
