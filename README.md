@@ -1,1 +1,1 @@
-https://itch.io/queue/c/3459863/pixelart-fonts?game_id=707314&password=
+https://itch.io/queue/c/3459863/pixelart-fonts
