@@ -14,7 +14,8 @@ def load_image(path: str) -> pygame.Surface:
     return pygame.image.load(path).convert_alpha()
 
 
-SCALE = True
+DEBUG__SCALE = True
+DEBUG__DRAW_TILEMAP_INDICES = False
 
 DISPLAY_WIDTH = 1920
 DISPLAY_HEIGHT = 1080
@@ -29,6 +30,8 @@ BOARD_GRID_HEIGHT = 11
 
 PLAYER_WIDTH = 8
 PLAYER_HEIGHT = 16
+
+PLAYER_SCREEN_POS = (SCREEN_WIDTH // 4 + TILE_SIZE, SCREEN_HEIGHT // 2)
 
 CARD_WIDTH = 50
 CARD_HEIGHT = 20

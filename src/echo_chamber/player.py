@@ -1,5 +1,3 @@
-import pygame
-
 from echo_chamber.config import *
 from echo_chamber.layer import TextLayer
 from echo_chamber.utils import load_image
@@ -14,10 +12,7 @@ class Player:
             (SCREEN_HEIGHT - board_height) / 2
         )
         
-        self.origin = (
-            board_origin[0] + (board_width - PLAYER_WIDTH) / 2,
-            board_origin[1] + (board_height - PLAYER_HEIGHT) / 2,
-        )
+        self.origin = PLAYER_SCREEN_POS
         
         self.textures = {
             "idle": {

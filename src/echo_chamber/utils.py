@@ -3,7 +3,7 @@ import random
 
 import pygame
 
-from echo_chamber.config import RENDER_SCALE, SCALE, CARD_REGISTRY
+from echo_chamber.config import RENDER_SCALE, DEBUG__SCALE, CARD_REGISTRY
 
 
 def argb_int_to_rgba(value):
@@ -17,7 +17,7 @@ def argb_int_to_rgba(value):
 def get_mouse_position() -> tuple[int, int]:
     mouse_x, mouse_y = pygame.mouse.get_pos()
 
-    if SCALE:
+    if DEBUG__SCALE:
         return mouse_x // RENDER_SCALE, mouse_y // RENDER_SCALE
 
     return mouse_x, mouse_y

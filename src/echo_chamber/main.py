@@ -36,7 +36,7 @@ def main() -> None:
     rendering_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
 
     # When SCALE is off the low-res surface is shown 1:1, so text uses scale 1
-    text_scale = RENDER_SCALE if SCALE else 1
+    text_scale = RENDER_SCALE if DEBUG__SCALE else 1
     text_layer = TextLayer(SCREEN_WIDTH, SCREEN_HEIGHT, text_scale,
                            FONT_PATH, FONT_BASE_SIZE, TEXT_SCALE)
 
@@ -59,14 +59,14 @@ def main() -> None:
         rendering_surface.fill((255, 255, 255))
         text_layer.clear()
 
-        board.render(rendering_surface)
+        board.render(rendering_surface, text_layer)
         player.render(rendering_surface, text_layer)
         
         action_queue.render(rendering_surface, text_layer)
         confirm_button.render(rendering_surface, text_layer)
 
         # Scale low-res surface, then draw hi-res text on top
-        if SCALE:
+        if DEBUG__SCALE:
             scaled = pygame.transform.scale(rendering_surface, (DISPLAY_WIDTH, DISPLAY_HEIGHT))
         else:
             scaled = rendering_surface
