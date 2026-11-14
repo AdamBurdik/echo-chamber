@@ -1,10 +1,8 @@
-import copy
-import random
 import sys
 
 import pygame
+pygame.init()
 
-from echo_chamber import player
 from echo_chamber.board import Board
 from echo_chamber.config import *
 from echo_chamber.confirm_button import ConfirmButton
@@ -13,7 +11,6 @@ from echo_chamber.player import Player
 from echo_chamber.queue.action import ActionQueue
 from echo_chamber.utils import generate_card
 
-pygame.init()
  
             
         
@@ -24,6 +21,8 @@ def main() -> None:
 
     screen = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT), pygame.FULLSCREEN)
     clock = pygame.time.Clock()
+    
+    load_tile_textures()
 
     board: Board = Board()
     action_queue: ActionQueue = ActionQueue()
