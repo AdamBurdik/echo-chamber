@@ -1,13 +1,19 @@
+from typing import TYPE_CHECKING
+
 from echo_chamber.config import *
 from echo_chamber.layer import TextLayer
 from echo_chamber.queue.action import ActionQueue
-from echo_chamber.simulation import Simulation
 from echo_chamber.utils import get_mouse_position
 
+if TYPE_CHECKING:
+    from echo_chamber.main import Game
+
+
 class ConfirmButton:
-    def __init__(self, simulation: Simulation, action_queue: ActionQueue) -> None:
-        self.simulation = simulation
-        self.action_queue: ActionQueue = action_queue
+    def __init__(self, game: "Game") -> None:
+        self.game: Game = game
+        self.simulation = game.simulation
+        self.action_queue: ActionQueue = game.action_queue
         
         diff = SCREEN_WIDTH - CARD_QUEUE_WIDTH
 
@@ -33,6 +39,9 @@ class ConfirmButton:
     
     def handle_input(self, event: pygame.event.Event) -> None:
         if event.type == pygame.MOUSEBUTTONDOWN and not self.simulation.running:
+            # if len(self.action_queue.selected) < 1:
+            #     return 
+            
             mouse_x, mouse_y = get_mouse_position()
             
             rect = pygame.Rect(self.origin[0], self.origin[1], CONFIRM_BUTTON_WIDTH, CONFIRM_BUTTON_HEIGHT)

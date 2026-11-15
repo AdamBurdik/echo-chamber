@@ -42,6 +42,7 @@ class Renderer:
 
         self.game_texture = self._texture(low_res, moderngl.NEAREST)
         self.overlay_texture = self._texture(low_res, moderngl.NEAREST)
+        self.hud_texture = self._texture(low_res, moderngl.NEAREST)
         self.text_above_texture = self._texture(text_size, moderngl.NEAREST)
         self.text_behind_texture = self._texture(text_size, moderngl.NEAREST)
 
@@ -64,7 +65,9 @@ class Renderer:
         self.program["u_text_above"] = 2
         self.program["u_backdrop"] = 3
         self.program["u_text_behind"] = 4
+        self.program["u_hud"] = 5
         self.program["u_low_res"] = low_res
+        self.program["u_shake"] = (0.0, 0.0)
         self.program["u_time"] = 0.0
         self.program["u_intensity"] = self.intensity
         self.program["u_backdrop_speed"] = BACKDROP_SPEED
@@ -106,11 +109,14 @@ class Renderer:
         overlay_surface: pygame.Surface,
         text_above_surface: pygame.Surface,
         text_behind_surface: pygame.Surface,
+        hud_surface: pygame.Surface,
         health: float = 1.0,
         experience: float = 0.0,
+        shake: tuple[float, float] = (0.0, 0.0),
     ) -> None:
         self.game_texture.write(game_surface.get_buffer().raw)
         self.overlay_texture.write(overlay_surface.get_buffer().raw)
+        self.hud_texture.write(hud_surface.get_buffer().raw)
         self.text_above_texture.write(text_above_surface.get_buffer().raw)
         self.text_behind_texture.write(text_behind_surface.get_buffer().raw)
 
@@ -121,11 +127,16 @@ class Renderer:
         self.program["u_time"] = self.time
         self.program["u_hp"] = max(0.0, min(1.0, health))
         self.program["u_xp"] = max(0.0, min(1.0, experience))
+        self.program["u_shake"] = (
+            shake[0] / self.low_res[0],
+            shake[1] / self.low_res[1],
+        )
 
         self.game_texture.use(0)
         self.overlay_texture.use(1)
         self.text_above_texture.use(2)
         self.backdrop_texture.use(3)
         self.text_behind_texture.use(4)
+        self.hud_texture.use(5)
 
         self.vao.render(moderngl.TRIANGLE_STRIP)

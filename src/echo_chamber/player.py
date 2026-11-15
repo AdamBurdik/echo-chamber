@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 import pygame
 
+from echo_chamber.card_generation import generate_cards_for_turn
 from echo_chamber.config import *
 from echo_chamber.easing import ease_in_out_cubic
 from echo_chamber.layer import TextLayer
@@ -76,7 +77,26 @@ class Player:
         self.regeneration_amount = 0
         self.regeneration_time = 0.0
         self.regeneration_tick_timer = 0.0
+
+        self.block_charges = 0
+        self.block_all_surrounding = False
         
+    @property
+    def level(self) -> int:
+        return self.experience_level + 1
+
+    def update_experience_level(self) -> None:
+        while True:
+            next_requirement = EXPERIENCE_LEVELS.get(self.experience_level + 1)
+            if next_requirement is None or self.experience < next_requirement:
+                return
+
+            self.experience = 0
+            self.experience_level += 1
+
+            for card in generate_cards_for_turn(self.game, 2):
+                self.game.action_queue.push_card(card)
+
     def get_direction_vector(self) -> tuple[int, int]:
         match self.direction:
             case "up": return 0, -1
@@ -84,6 +104,15 @@ class Player:
             case "right": return 1, 0
             case "left": return -1, 0
         raise Exception(f"Invalid direction: {self.direction}")
+
+    def get_relative_direction_vector(self, direction: str) -> tuple[int, int]:
+        forward_x, forward_y = self.get_direction_vector()
+        match direction:
+            case "forward": return forward_x, forward_y
+            case "backward": return -forward_x, -forward_y
+            case "left": return forward_y, -forward_x
+            case "right": return -forward_y, forward_x
+        raise Exception(f"Invalid relative direction: {direction}")
 
     def jump_up(self, board, amount: int = 1) -> None:
         self.jump(board, "up", amount)
@@ -108,9 +137,49 @@ class Player:
             "drift": random.uniform(-DAMAGE_LOG_DRIFT, DAMAGE_LOG_DRIFT),
         })
 
-    def take_damage(self, amount: int) -> None:
+    def is_surrounding_position(self, grid_pos: tuple[int, int]) -> bool:
+        player_x, player_y = self.game.board.player_position
+        return max(
+            abs(grid_pos[0] - player_x),
+            abs(grid_pos[1] - player_y),
+        ) == 1
+
+    def add_block(self, charges: int = 0, all_surrounding: bool = False) -> None:
+        if charges > 0:
+            self.block_charges += charges
+        if all_surrounding:
+            self.block_all_surrounding = True
+
+    def start_turn(self) -> None:
+        self.block_all_surrounding = False
+
+    def try_block(self, source_pos: tuple[int, int] | None) -> bool:
+        if source_pos is None or not self.is_surrounding_position(source_pos):
+            return False
+
+        if not self.block_all_surrounding and self.block_charges <= 0:
+            return False
+
+        if not self.block_all_surrounding:
+            self.block_charges -= 1
+
+        self._add_health_log(0, "block")
+        return True
+
+    def take_damage(
+        self,
+        amount: int,
+        source_pos: tuple[int, int] | None = None,
+    ) -> None:
+        if self.try_block(source_pos):
+            return
+
         self.health -= amount
         self._add_health_log(amount, "damage")
+        
+        if self.health <= 0:
+            self.game.end_game()
+            self.game.menu = "dead_screen"
 
     def heal(self, amount: int) -> None:
         healed = min(amount, PLAYER_MAX_HEALTH - self.health)
@@ -160,13 +229,13 @@ class Player:
         self.bouncing = True
         self.bounce_t = 0.0
 
-    def jump(self, board, direction: str, amount: int = 1) -> None:
-        if self.jumping or self.bouncing:
-            return
-
-        self.direction = direction
-        dx, dy = self.get_direction_vector()
-
+    def _jump_delta(
+        self,
+        board,
+        dx: int,
+        dy: int,
+        amount: int = 1,
+    ) -> None:
         target = (
             board.player_position[0] + dx * amount,
             board.player_position[1] + dy * amount,
@@ -178,6 +247,9 @@ class Player:
 
         board.move_player((dx, dy), amount)  # logical move happens instantly
 
+        if board.trigger_trap(tuple(board.player_position)):
+            self.take_damage(TRAP_PLAYER_DAMAGE)
+
         # The logical move is instant, so offset the board back by the whole
         # move to keep the old frame on screen. It then eases back to zero.
         self.jump_start_offset = (dx * TILE_SIZE * amount, dy * TILE_SIZE * amount)
@@ -187,10 +259,42 @@ class Player:
         self.jump_t = 0.0
         self.experience += amount
 
-    def rotate(self, direction: str) -> None:
-        if direction not in CARDINAL_DIRECTIONS:
-            raise ValueError(f"Invalid direction: {direction}")
+    def jump(self, board, direction: str, amount: int = 1) -> None:
+        if self.jumping or self.bouncing:
+            return
+
         self.direction = direction
+        dx, dy = self.get_direction_vector()
+        self._jump_delta(board, dx, dy, amount)
+
+    def jump_relative(self, board, direction: str, amount: int = 1) -> None:
+        if self.jumping or self.bouncing:
+            return
+
+        dx, dy = self.get_relative_direction_vector(direction)
+        self._jump_delta(board, dx, dy, amount)
+
+    def random_step(self, board) -> None:
+        self.jump(board, random.choice(CARDINAL_DIRECTIONS), 1)
+
+    def place_trap(self, board) -> None:
+        dx, dy = self.get_direction_vector()
+        self.game.place_trap((
+            board.player_position[0] + dx,
+            board.player_position[1] + dy,
+        ))
+
+    def rotate(self, direction: str) -> None:
+        match direction:
+            case "left": step = -1
+            case "right": step = 1
+            case "around": step = 2
+            case _: raise ValueError(f"Invalid rotation: {direction}")
+
+        index = CARDINAL_DIRECTIONS.index(self.direction)
+        self.direction = CARDINAL_DIRECTIONS[
+            (index + step) % len(CARDINAL_DIRECTIONS)
+        ]
 
     def add_slash_effect(self, direction: str, delay: float = 0.0) -> None:
         self.slash_effects.append({
@@ -228,6 +332,8 @@ class Player:
                 enemy.take_damage(damage)
 
     def update(self, dt, board) -> None:
+        self.update_experience_level()
+
         for entry in self.health_log:
             entry["t"] += dt
 
@@ -303,15 +409,20 @@ class Player:
                 alpha = int(255 * max(0.0, 1.0 - fade))
 
             flash = max(0.0, 1.0 - t / DAMAGE_LOG_FLASH_DURATION)
-            base_color = HEAL_LOG_COLOR if entry["kind"] == "heal" else DAMAGE_LOG_COLOR
+            if entry["kind"] == "block":
+                base_color = BLOCK_LOG_COLOR
+                text = "Blocked"
+            else:
+                base_color = HEAL_LOG_COLOR if entry["kind"] == "heal" else DAMAGE_LOG_COLOR
+                prefix = "+" if entry["kind"] == "heal" else "-"
+                text = f"{prefix}{entry['amount']:g} HP"
+
             color = (
                 round(DAMAGE_LOG_FLASH_COLOR[0] * flash + base_color[0] * (1.0 - flash)),
                 round(DAMAGE_LOG_FLASH_COLOR[1] * flash + base_color[1] * (1.0 - flash)),
                 round(DAMAGE_LOG_FLASH_COLOR[2] * flash + base_color[2] * (1.0 - flash)),
             )
 
-            prefix = "+" if entry["kind"] == "heal" else "-"
-            text = f"{prefix}{entry['amount']:g} HP"
             text_width, _ = text_layer.text_size(text)
             text_layer.draw_text(
                 text,

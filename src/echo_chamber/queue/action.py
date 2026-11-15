@@ -1,8 +1,12 @@
+import random
+
 import pygame
 
+from echo_chamber.card_generation import generate_cards_for_turn
 from echo_chamber.config import *
 from echo_chamber.layer import TextLayer
-from echo_chamber.utils import get_mouse_position, load_image
+from echo_chamber.queue.card_render import render_card
+from echo_chamber.utils import get_mouse_position
 
 from typing import TYPE_CHECKING
 
@@ -13,7 +17,7 @@ class ActionQueue:
     def __init__(self, game: "Game") -> None:
         self.game: Game = game
         
-        self.capacity = 5
+        self.capacity = ACTION_QUEUE_CAPACITY
         self.inventory = []
         self.selected = []
         self.icon_cache = {}
@@ -28,21 +32,21 @@ class ActionQueue:
     def push_card(self, card: dict) -> None:
         self.inventory.append(card)
 
-    def _get_icon(self, card: dict) -> pygame.Surface | None:
-        path = card.get("icon")
-        if path is None:
-            return None
+    def grant_turn_end_cards(self) -> list[dict]:
+        free_slots = self.capacity - len(self.inventory) - len(self.selected)
+        if free_slots <= 0:
+            return []
 
-        rotation = card.get("icon_rotation", 0)
-        key = (path, rotation)
-        if key not in self.icon_cache:
-            icon = load_image(path).copy()
-            icon.fill(ECHO_CARD_ICON_COLOR if card.get("echo", False) else CARD_ICON_COLOR, special_flags=pygame.BLEND_RGBA_MULT)
-            if rotation:
-                icon = pygame.transform.rotate(icon, rotation)
-            self.icon_cache[key] = icon
+        count = min(
+            random.randint(CARD_GEN_MIN_PER_TURN, CARD_GEN_MAX_PER_TURN),
+            free_slots,
+        )
+        cards = generate_cards_for_turn(self.game, count)
 
-        return self.icon_cache[key]
+        for card in cards:
+            self.push_card(card)
+
+        return cards
 
     def _get_card_rects(self) -> list[tuple[dict, pygame.Rect]]:
         cards = []
@@ -93,30 +97,10 @@ class ActionQueue:
         #         return False
         #     return cards[i + 1][0]["selected"]
 
-        for i, (card, rect) in enumerate(cards):
-            pygame.draw.rect(surface, ECHO_CARD_BACKGROUND_COLOR if card.get("echo", False) else CARD_BACKGROUND_COLOR, rect)
-
-            if card.get("echo", False):
-                # Top line
-                pygame.draw.line(surface, argb_int_to_rgba(0x0098db), (rect.x, rect.y), (rect.x + rect.width - 1, rect.y), 1)
-                # Left line
-                pygame.draw.line(surface, argb_int_to_rgba(0x0098db), (rect.x, rect.y), (rect.x, rect.y + rect.height - 1), 1)
-                
-                # Right line
-                pygame.draw.line(surface, argb_int_to_rgba(0x0ce6f2), (rect.x + rect.width - 1, rect.y), (rect.x + rect.width - 1, rect.y + rect.height - 1), 1)
-                # Bottom line
-                pygame.draw.line(surface, argb_int_to_rgba(0x0ce6f2), (rect.x, rect.y + rect.height - 1), (rect.x + rect.width - 1, rect.y + rect.height - 1), 1)
-
-            line_offset_y = 0
-            for line in card["lines"]:
-                text_layer.draw_text(line, (rect.x + 3, rect.y + line_offset_y), CARD_TEXT_COLOR, layer="behind")
-                line_offset_y += text_layer.text_size(line)[1]
-
-            icon = self._get_icon(card)
-            if icon is not None:
-                icon_x = rect.right - icon.get_width() - CARD_ICON_PADDING
-                icon_y = rect.top + CARD_ICON_PADDING
-                surface.blit(icon, (icon_x, icon_y))
+        for card, rect in cards:
+            line_offset_y = render_card(
+                surface, text_layer, card, rect, self.icon_cache
+            )
 
             if card["temp"].get("last_selected", False):
                 text_size = text_layer.text_size(f"Selected cards")
@@ -148,13 +132,20 @@ class ActionQueue:
         ...
 
     def handle_input(self, event: pygame.Event) -> None:
-        if event.type != pygame.MOUSEBUTTONDOWN or self.game.simulation.running:
+        if (
+            event.type != pygame.MOUSEBUTTONDOWN
+            or event.button != 1
+            or self.game.simulation.running
+        ):
             return
 
         mouse_x, mouse_y = get_mouse_position()
 
         for card, rect in self._get_card_rects():
             if rect.collidepoint(mouse_x, mouse_y):
+                if not card.get("playable", True):
+                    return
+
                 is_selected = card["selected"]
                 if not is_selected:
                     if len(self.selected) >= CARD_QUEUE_MAX_SELECTED:

@@ -55,7 +55,7 @@ class Goblin(AbstractEnemy):
 
         self.direction = self.direction_from_delta(dx, dy)
         self.lunge_towards(dx, dy)
-        self.game.player.take_damage(GOBLIN_ATTACK_DAMAGE)
+        self.game.player.take_damage(GOBLIN_ATTACK_DAMAGE, self.grid_pos)
         print("Goblin attacks")
 
     def simulation_step(self) -> None:

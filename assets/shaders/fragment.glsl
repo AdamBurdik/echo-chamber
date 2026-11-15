@@ -4,9 +4,11 @@ uniform sampler2D u_game;
 uniform sampler2D u_overlay;
 uniform sampler2D u_text_above;
 uniform sampler2D u_text_behind;
+uniform sampler2D u_hud;
 uniform sampler2D u_backdrop;
 
 uniform vec2 u_low_res;
+uniform vec2 u_shake;
 uniform float u_time;
 uniform float u_intensity;
 uniform float u_backdrop_speed;
@@ -122,10 +124,14 @@ vec3 apply_hud(vec3 color, vec2 p, float t) {
 }
 
 void main() {
-    vec3 color = texture(u_game, uv).bgra.rgb;
+    vec2 shake_uv = clamp(uv + u_shake, 0.0, 1.0);
+    vec3 color = texture(u_game, shake_uv).bgra.rgb;
 
-    vec4 text_behind = texture(u_text_behind, uv).bgra;
+    vec4 text_behind = texture(u_text_behind, shake_uv).bgra;
     color = mix(color, text_behind.rgb, text_behind.a);
+
+    vec4 hud = texture(u_hud, uv).bgra;
+    color = mix(color, hud.rgb, hud.a);
 
     vec2 low_px = floor(uv * u_low_res);
     vec2 low_uv = (low_px + 0.5) / u_low_res;
@@ -157,7 +163,7 @@ void main() {
     vec4 overlay = texture(u_overlay, uv).bgra;
     color = mix(color, overlay.rgb, overlay.a);
 
-    vec4 text_above = texture(u_text_above, uv).bgra;
+    vec4 text_above = texture(u_text_above, shake_uv).bgra;
     color = mix(color, text_above.rgb, text_above.a);
 
     f_color = vec4(color, 1.0);

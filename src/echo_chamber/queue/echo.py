@@ -1,8 +1,9 @@
+import math
 from typing import TYPE_CHECKING
 
 from echo_chamber.config import *
 from echo_chamber.layer import TextLayer
-from echo_chamber.utils import load_image
+from echo_chamber.queue.card_render import render_card
 
 if TYPE_CHECKING:
     from echo_chamber.main import Game
@@ -11,7 +12,7 @@ class EchoQueue:
     def __init__(self, game: "Game") -> None:
         self.game: Game = game
 
-        self.capacity = 5
+        self.capacity = ECHO_QUEUE_CAPACITY
         self.queue = []
         self.icon_cache = {}
 
@@ -23,23 +24,21 @@ class EchoQueue:
         )
 
     def push_card(self, card: dict) -> None:
+        if len(self.queue) >= self.capacity:
+            self.overflow()
+
+        card["countdown"] = card.get("echo_countdown", ECHO_COUNTDOWN_DEFAULT)
         self.queue.append(card)
 
-    def _get_icon(self, card: dict) -> pygame.Surface | None:
-        path = card.get("icon")
-        if path is None:
-            return None
+    def overflow(self) -> None:
+        count = max(1, math.ceil(len(self.queue) / ECHO_OVERFLOW_DIVISOR))
+        overflow_cards = self.queue[:count]
+        del self.queue[:count]
 
-        rotation = card.get("icon_rotation", 0)
-        key = (path, rotation)
-        if key not in self.icon_cache:
-            icon = load_image(path).copy()
-            icon.fill(CARD_ICON_COLOR, special_flags=pygame.BLEND_RGBA_MULT)
-            if rotation:
-                icon = pygame.transform.rotate(icon, rotation)
-            self.icon_cache[key] = icon
+        for card in overflow_cards:
+            self.game.simulation.play_echo_card(card)
 
-        return self.icon_cache[key]
+        self.game.trigger_energy_spike()
 
     def _get_card_rects(self) -> list[tuple[dict, pygame.Rect]]:
         cards = []
@@ -73,19 +72,8 @@ class EchoQueue:
         #         return False
         #     return cards[i + 1][0]["selected"]
 
-        for i, (card, rect) in enumerate(cards):
-            pygame.draw.rect(surface, CARD_BACKGROUND_COLOR, rect)
-
-            line_offset_y = 0
-            for line in card["lines"]:
-                text_layer.draw_text(line, (rect.x + 3, rect.y + line_offset_y), CARD_TEXT_COLOR, layer="behind")
-                line_offset_y += text_layer.text_size(line)[1]
-
-            icon = self._get_icon(card)
-            if icon is not None:
-                icon_x = rect.right - icon.get_width() - CARD_ICON_PADDING
-                icon_y = rect.top + CARD_ICON_PADDING
-                surface.blit(icon, (icon_x, icon_y))
+        for card, rect in cards:
+            render_card(surface, text_layer, card, rect, self.icon_cache)
 
         # if self.game.simulation.running:
         #     shadow = pygame.Surface((bg_rect.width, bg_rect.height), pygame.SRCALPHA)   # per-pixel alpha

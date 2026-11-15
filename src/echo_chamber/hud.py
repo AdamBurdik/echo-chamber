@@ -1,6 +1,9 @@
 from typing import TYPE_CHECKING
 
+import pygame
+
 from echo_chamber.config import *
+from echo_chamber.layer import TextLayer
 
 if TYPE_CHECKING:
     from echo_chamber.main import Game
@@ -36,3 +39,24 @@ class HUD:
             ) * growth
         else:
             self.display_experience_pct = self.experience_pct
+
+    def render(self, surface: pygame.Surface, text_layer: TextLayer) -> None:
+        # Stack header
+        rect = pygame.Rect(240, 5.5, 62, 16)
+        pygame.draw.rect(surface, CARD_QUEUE_BACKGROUND_COLOR, rect)
+        
+        text_size = text_layer.text_size("STACK", text_scale=1)
+        text_layer.draw_text("STACK", (
+            rect.x + (rect.width - text_size[0]) / 2,
+            rect.y + (rect.height - text_size[1]) / 2,
+        ), (255, 255, 255), text_scale=1)
+        
+        # Echo header
+        rect = pygame.Rect(306.5, 5.5, 62, 16)
+        pygame.draw.rect(surface, CARD_QUEUE_BACKGROUND_COLOR, rect)
+    
+        text_size = text_layer.text_size("ECHO", text_scale=1)
+        text_layer.draw_text("ECHO", (
+            rect.x + (rect.width - text_size[0]) / 2,
+            rect.y + (rect.height - text_size[1]) / 2,
+        ), (255, 255, 255), text_scale=1)

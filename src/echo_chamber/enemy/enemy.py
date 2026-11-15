@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 import pygame
 
+from echo_chamber.config import TRAP_ENEMY_DAMAGE
 from echo_chamber.easing import ease_in_out_cubic
 from echo_chamber.layer import TextLayer
 
@@ -88,6 +89,10 @@ class AbstractEnemy(abc.ABC):
         self.direction = self.direction_from_delta(dx, dy)
         self.jumping = True
         self.jump_t = 0.0
+
+        if self.game.board.trigger_trap(grid_pos):
+            self.take_damage(TRAP_ENEMY_DAMAGE)
+
         return True
 
     @staticmethod
