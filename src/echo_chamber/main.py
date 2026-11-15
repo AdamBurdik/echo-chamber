@@ -3,6 +3,9 @@ import os
 import sys
 import random
 
+if getattr(sys, "frozen", False):
+    os.chdir(getattr(sys, "_MEIPASS", os.path.dirname(sys.executable)))
+
 from echo_chamber.enemy.cultist import Cultist
 from echo_chamber.enemy.slime import Slime
 from echo_chamber.energy_spike import EnergySpikeEffect
@@ -11,7 +14,7 @@ from echo_chamber.menu.dead_screen import DeadScreen
 from echo_chamber.menu.main_menu import MainMenu
 from echo_chamber.queue.echo import EchoQueue
 
-# random.seed(5)
+# random.seed(10)
 
 import pygame
 from pygame.time import Clock

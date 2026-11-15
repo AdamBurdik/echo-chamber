@@ -1,3 +1,5 @@
+import random
+
 import pygame
 
 
@@ -31,7 +33,8 @@ BOARD_GRID_WIDTH = 17
 BOARD_GRID_HEIGHT = 17
 BOARD_RENDER_MARGIN = 2  # extra tiles so jumps never expose the background
 
-TILE_GENERATION_SEED = 2227
+# TILE_GENERATION_SEED = 447824
+TILE_GENERATION_SEED = random.randint(0, 9999)
 TILE_PATCH_SCALE = 6.0
 TILE_DETAIL_SCALE = 2.0
 TRAP_SPAWN_CHANCE = 0.01
