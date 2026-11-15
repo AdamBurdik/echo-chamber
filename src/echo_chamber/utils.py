@@ -3,7 +3,12 @@ import random
 
 import pygame
 
-from echo_chamber.config import RENDER_SCALE, DEBUG__SCALE, CARD_REGISTRY
+from echo_chamber.config import (
+    CARD_REGISTRY,
+    DEBUG__SCALE,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
+)
 
 
 def argb_int_to_rgba(value):
@@ -18,7 +23,11 @@ def get_mouse_position() -> tuple[int, int]:
     mouse_x, mouse_y = pygame.mouse.get_pos()
 
     if DEBUG__SCALE:
-        return mouse_x // RENDER_SCALE, mouse_y // RENDER_SCALE
+        screen_width, screen_height = pygame.display.get_surface().get_size()
+        return (
+            int(mouse_x * SCREEN_WIDTH / screen_width),
+            int(mouse_y * SCREEN_HEIGHT / screen_height),
+        )
 
     return mouse_x, mouse_y
 

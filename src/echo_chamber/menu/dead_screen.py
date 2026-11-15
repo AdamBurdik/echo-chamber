@@ -48,7 +48,8 @@ class DeadScreen:
             # Check for left mouse click
             if event.button == 1:
                 # Check if the click position is inside the play button rectangle
-                if self.back_rect.collidepoint(event.pos):
+                mouse_pos = self.game.ui_to_surface_position(event.pos)
+                if self.back_rect.collidepoint(mouse_pos):
                     print("Play button clicked!")
                     # self.game.end_game()
                     self.game.menu = "main"

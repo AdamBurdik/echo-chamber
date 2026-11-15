@@ -6,6 +6,16 @@ import random
 if getattr(sys, "frozen", False):
     os.chdir(getattr(sys, "_MEIPASS", os.path.dirname(sys.executable)))
 
+if sys.platform == "win32":
+    try:
+        import ctypes
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)
+    except Exception:
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception:
+            pass
+
 from echo_chamber.enemy.cultist import Cultist
 from echo_chamber.enemy.slime import Slime
 from echo_chamber.energy_spike import EnergySpikeEffect
@@ -53,9 +63,11 @@ class Game:
         else:
             flags |= pygame.FULLSCREEN
 
-        return pygame.display.set_mode(
-            (DISPLAY_WIDTH, DISPLAY_HEIGHT), flags
-        )
+        desktop_size = pygame.display.get_desktop_sizes()[0]
+        if desktop_size[0] <= 0 or desktop_size[1] <= 0:
+            desktop_size = (DISPLAY_WIDTH, DISPLAY_HEIGHT)
+
+        return pygame.display.set_mode(desktop_size, flags)
 
     def __init__(self) -> None:
         pygame.display.set_caption("Echo Chamber")
@@ -275,6 +287,18 @@ class Game:
             self.shake_rng.uniform(-strength, strength),
         )
 
+    def ui_to_surface_position(self, position: tuple[int, int]) -> tuple[int, int]:
+        screen_width, screen_height = self.screen.get_size()
+        return (
+            int(position[0] * DISPLAY_WIDTH / screen_width),
+            int(position[1] * DISPLAY_HEIGHT / screen_height),
+        )
+
+    def blit_ui_surface(self, surface: pygame.Surface) -> None:
+        if surface.get_size() != self.screen.get_size():
+            surface = pygame.transform.scale(surface, self.screen.get_size())
+        self.screen.blit(surface, (0, 0))
+
     def handle_input(self, event: pygame.Event) -> None:
         if self.menu == "main":
             self.main_menu.handle_input(event)
@@ -344,10 +368,10 @@ class Game:
 
             if self.menu == "main":
                 self.main_menu.render()
-                self.screen.blit(self.main_menu.surface, (0, 0))
+                self.blit_ui_surface(self.main_menu.surface)
             elif self.menu == "dead_screen":
                 self.dead_menu.render()
-                self.screen.blit(self.dead_menu.surface, (0, 0))
+                self.blit_ui_surface(self.dead_menu.surface)
             else:
                 self.rendering_surface.fill(CARD_QUEUE_BACKGROUND_COLOR)
                 self.hud_surface.fill((0, 0, 0, 0))
