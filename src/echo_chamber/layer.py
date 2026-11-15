@@ -53,6 +53,8 @@ class TextLayer:
     def draw_text(self, text: str, pos: tuple[float, float],
                   color: tuple[int, int, int] = (255, 255, 255),
                   text_scale: float | None = None,
-                  layer: str = "above") -> None:
+                  layer: str = "above",
+                  alpha: int = 255) -> None:
         text_surface = self.get_font(text_scale).render(text, False, color)
+        text_surface.set_alpha(max(0, min(255, alpha)))
         self.get_surface(layer).blit(text_surface, self.project(*pos))

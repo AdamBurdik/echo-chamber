@@ -34,7 +34,7 @@ class Board:
                 if grid_y not in self.tile_map:
                     self.tile_map[grid_y] = {}
 
-                self.tile_map[grid_y][grid_x] = "empty"
+                self.tile_map[grid_y][grid_x] = random.choice(["empty", "hole", "square_pattern", "lines"])
 
     def get_tiles_around(self, grid_x: int, grid_y: int, radius: int) -> list[tuple[int, int]]:
         tiles: list[tuple[int, int]] = []
